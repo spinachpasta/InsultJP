@@ -102,3 +102,7 @@ dist
 
 # TernJS port file
 .tern-port
+
+testSentences.txt
+saru.json
+coronaTest.json

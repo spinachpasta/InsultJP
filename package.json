@@ -1,0 +1,24 @@
+{
+  "name": "insultjp",
+  "version": "1.0.0",
+  "description": "This program offends someone based on the sentence given",
+  "main": "index.js",
+  "scripts": {
+    "test": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/spinachpasta/InsultJP.git"
+  },
+  "author": "spinachpasta",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/spinachpasta/InsultJP/issues"
+  },
+  "homepage": "https://github.com/spinachpasta/InsultJP#readme",
+  "dependencies": {
+    "@google-cloud/translate": "^5.1.6",
+    "dotenv": "^8.2.0",
+    "prompt": "^1.0.0"
+  }
+}
