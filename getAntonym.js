@@ -42,7 +42,6 @@ function GetTranslation(str,target,source,callback){
         //console.log(body);
     });
 }
-
 function htmlGet(address,callback){
     https.get(address,function(res){
         var data="";
@@ -57,6 +56,7 @@ function htmlGet(address,callback){
     });
 }
 
+//SentiWordNet_3.0.0
 function SearchAntonymEn(str,callback){
     var count=0;
     var tmpscore=0;
@@ -64,20 +64,18 @@ function SearchAntonymEn(str,callback){
     var lineReader = require('readline').createInterface({
         input: require('fs').createReadStream('antonym.txt')
     });
-    var antonym="";
-    var unim="";//interesting->uninteresting
+    var candidates=[];
     lineReader.on('line', function (line) {
         var arr=line.split("\t");
         for(var i=0;i<arr.length;i++){
             if(arr[i]==str){
+                var antonym="";
                 if(i==0){
                     antonym=arr[1];
                 }else{
                     antonym=arr[0];
                 }
-                if(antonym.includes(str)){
-                    unim=antonym;
-                }
+                candidates.push(antonym);
                 console.log("match found!"+antonym);
                 break;
             }
@@ -85,10 +83,28 @@ function SearchAntonymEn(str,callback){
         count++;
     });
     lineReader.on('close',function(){ 
-        if(unim!=""){
-            antonym=unim;
-        }
-        callback(antonym);
+        var lineReader1 = require('readline').createInterface({
+            input: require('fs').createReadStream('SentiWordNet_3.0.0.txt')
+        });
+
+        var antonym="";
+        var max=Infinity;
+        var count1=0;
+        lineReader1.on('line', function (line) {
+            if(line.length==0){
+                return;
+            }
+            if(line.charAt(0)=="#"){
+                return;
+            }
+            count1++;
+            if(count1==0){
+            console.log(line);
+            }
+        });
+        lineReader1.on('close',function(){ 
+            callback(antonym);
+        });
     });
 }
 SearchAntonymEn("like",function(s){
