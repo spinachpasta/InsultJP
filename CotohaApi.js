@@ -10,7 +10,7 @@ const myArgs=process.argv.slice(2);
 
 let accessToken="";
 
-function GetAccessToken(){
+function GetAccessToken(callback){
     const data = JSON.stringify({
         "grantType": "client_credentials",
         "clientId": process.env.COTOHA_ID,
@@ -36,7 +36,7 @@ function GetAccessToken(){
             var json=JSON.parse(textChunk);
             accessToken= json.access_token;
             console.log(`access token:${accessToken}`);
-            setTimeout(GetInput,1);
+            callback();
         });
     })
 
@@ -120,5 +120,5 @@ function ParseJp(str,callback){
 }
 module.exports.ParseJp=ParseJp;
 module.exports.GetAccessToken=GetAccessToken;
-module.exports.ParseJp=GetEmotion;
+module.exports.GetEmotion=GetEmotion;
 

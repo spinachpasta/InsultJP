@@ -106,3 +106,4 @@ dist
 testSentences.txt
 saru.json
 coronaTest.json
+parsed/
