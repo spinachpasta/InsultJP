@@ -214,6 +214,17 @@ function test(data,callback){
                     console.log("*");
                     var token=sen.tokens[i];
                     var inverted=katsuyou(token.form,token.lemma,token.features);
+                    var isNeg=false;
+                    for(var dep of token.dependency_labels){
+                        if(dep.label=="neg"){
+                            isNeg=true;
+                            console.log("remove:"+getToken(data,dep.token_id));
+                            break;
+                        }
+                    }
+                    if(isNeg){
+                        continue;
+                    }
                     //console.log(`***${inverted}***`);
                     if(token.pos=="名詞"){
                         //console.log("*"); 
@@ -223,7 +234,7 @@ function test(data,callback){
                         else{
                             for(var dep of token.dependency_labels){
                                 if(dep.label=="amod"){
-                                  var t1=getToken(data,dep.token_id);
+                                    var t1=getToken(data,dep.token_id);
                                     /*console.log(getToken(data,dep.token_id));*/
                                     inverted=katsuyou(t1.form,t1.lemma,t1.features);
                                     console.log(`***${inverted}くな***`);
