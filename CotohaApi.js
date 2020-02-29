@@ -11,12 +11,13 @@ const myArgs=process.argv.slice(2);
 let accessToken="";
 
 function GetAccessToken(callback){
+    if(accessToken!="")return;
     const data = JSON.stringify({
         "grantType": "client_credentials",
         "clientId": process.env.COTOHA_ID,
         "clientSecret": process.env.COTOHA_SECRET
     });
-    console.log(data);
+    //console.log(data);
     const options = {
         hostname: 'api.ce-cotoha.com',
         port: 443,
@@ -28,14 +29,14 @@ function GetAccessToken(callback){
     }
 
     const req = https.request(options, res => {
-        console.log(`statusCode: ${res.statusCode}`)
+        //console.log(`statusCode: ${res.statusCode}`)
 
         res.on('data', d => {
             var textChunk = d.toString('utf8');
-            console.log(textChunk);
+            //console.log(textChunk);
             var json=JSON.parse(textChunk);
             accessToken= json.access_token;
-            console.log(`access token:${accessToken}`);
+            //console.log(`access token:${accessToken}`);
             callback();
         });
     })
@@ -53,7 +54,7 @@ function GetEmotion(str,callback){
     const data = JSON.stringify({
         "sentence": str
     });
-    console.log(data);
+    //console.log(data);
     const options = {
         hostname: 'api.ce-cotoha.com',
         port: 443,
@@ -89,7 +90,7 @@ function ParseJp(str,callback){
         "sentence": str,
         "type":"kuzure"
     });
-    console.log(data);
+    //console.log(data);
     const options = {
         hostname: 'api.ce-cotoha.com',
         port: 443,
@@ -102,11 +103,11 @@ function ParseJp(str,callback){
     }
 
     const req = https.request(options, res => {
-        console.log(`statusCode: ${res.statusCode}`);
+        //console.log(`statusCode: ${res.statusCode}`);
 
         res.on('data', d => {
             var textChunk = d.toString('utf8');
-            console.log(textChunk);
+            //console.log(textChunk);
             callback((textChunk));
         });
     })
