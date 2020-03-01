@@ -215,11 +215,12 @@ function SearchAntonymEn(str,type,callback){
         var antonym="";
         var count1=0;
         var judged=[];
-        judged[str]={p:0,n:0,w:str};
+        judged[str]={p:0,n:0,w:str,obsolete:true};
         for(var w of candidates){
-            judged[w]={p:0,n:0,w:w};
+            judged[w]={p:0,n:0,w:w,obsolete:false};
         }
         //console.log(judged);
+        var removeList=[];
         lineReader1.on('line', function (line) {
             if(line.length==0){
                 return;
@@ -235,9 +236,13 @@ function SearchAntonymEn(str,type,callback){
                 var word=spaced[i].split("#")[0];
                 for(var w in judged){
                     if(judged[w].w==word){
+                        //console.log(line);
                         //console.log("matched"+word);
                         var pscore=parseFloat(spaced[2]);
                         var nscore=parseFloat(spaced[3]);
+                        if(type&&type!=spaced[0]&&w!=str){
+                            removeList.push(w);
+                        }
                         if(!type||type==spaced[0]||word==str){
                             //console.log(pscore+","+nscore);
                             judged[w].p=pscore;
@@ -255,13 +260,19 @@ function SearchAntonymEn(str,type,callback){
             count1++;
         });
         lineReader1.on('close',function(){ 
-
+            for(var w of removeList){
+                judged[w].obsolete=true;
+            }
+            //console.log(judged);
             var max=0;
             var a=judged[str];
             var unindis=[];
             var antonym1="";
             //console.log(judged);
             for(var w of candidates){
+                if(judged[w].obsolete){
+                    continue;
+                }
                 if(w.includes(str)){
                     var b=judged[w];
                     var diff=a.p-a.n-(b.p-b.n);
@@ -273,6 +284,9 @@ function SearchAntonymEn(str,type,callback){
                 }
             }
             for(var w of candidates){
+                if(judged[w].obsolete){
+                    continue;
+                }
                 var b=judged[w];
                 var diff=Math.abs(a.p-b.n)+Math.abs(a.p-b.n);
                 diff*=diff;

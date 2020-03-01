@@ -8,10 +8,10 @@ function katsuyou(form,lemma,features){//converts a word to 未然形
         }else{
             console.log(getVowel(gobi[0]));
             console.log(getVowel(gobi[0])+"e");
-            return form+romaji[getVowel(gobi[0])+"e"]+"ない";
+            return form+romaji[getVowel(gobi[0])+"e"];
         }
 
-        return "e"+"ない";
+        return "e";
     }
     if(features.includes("K")){
         return form+"か";
@@ -35,7 +35,7 @@ function katsuyou(form,lemma,features){//converts a word to 未然形
         return form+"ま";
     }
     if(features.includes("R")){
-        return form+"ま";
+        return form+"ら";
     }
     if(features.includes("W")){
         return form+"わ";
@@ -51,12 +51,78 @@ function katsuyou(form,lemma,features){//converts a word to 未然形
         return "行か";
     }
     //アウオ段 イ段 Lて連用
-
+    /*
     if(features.includes("アウオ段")){
         return lemma.substring(0,lemma.length-1);
     }
     if(features.includes("イ段")){
+        return "よ";
+    }
+    if(features.includes("Lて連用")){
 
+    }*/
+    //console.log("out of cases");
+    return undefined;
+} 
+
+
+function katsuyou1(form,lemma,features){//converts a word
+    if(features.includes("A")){
+        var gobi=getGobi(form,lemma);
+        if(gobi.length<1){
+            console.log("error invalid ending of the word")
+        }else{
+            console.log(getVowel(gobi[0]));
+            console.log(getVowel(gobi[0])+"e");
+            return form+romaji[getVowel(gobi[0])+"e"];
+        }
+
+        return "e";
+    }
+    if(features.includes("K")){
+        return form+"け";
+    }
+    if(features.includes("G")){
+        return form+"げ";
+    }
+    if(features.includes("S")){
+        return form+"せ";
+    }
+    if(features.includes("T")){
+        return form+"て";
+    }
+    if(features.includes("N")){
+        return form+"ね";
+    }
+    if(features.includes("B")){
+        return form+"べ";
+    }
+    if(features.includes("M")){
+        return form+"め";
+    }
+    if(features.includes("R")){
+        return form+"れ";
+    }
+    if(features.includes("W")){
+        return form+"え";
+    }
+
+    if(features.includes("KURU")){
+        return form;
+    }
+    if(features.includes("RX")){
+        return form+"れ";
+    }
+    if(features.includes("IKU")){
+        return "行け";
+    }
+    //アウオ段 イ段 Lて連用
+
+    if(features.includes("アウオ段")){
+        return form;//lemma.substring(0,lemma.length-1);
+    }
+    if(features.includes("イ段")){
+        return "え";
     }
     if(features.includes("Lて連用")){
 
@@ -126,6 +192,48 @@ function maxInArray(arr){
     return max;
 }
 function test(data,callback){
+    function build(){
+        if(count>0)return;
+        var res="";
+        var res1="";
+        for(var sen of data.result){
+            for(var token of sen.tokens){
+                res1+=token.form;
+                var w=token.form;
+                var insert="";
+                for(var mod of mods){
+                    if(mod.id==token.id){
+                        console.log(mod);
+                        switch(mod.type){
+                            case "remove":
+                                w="";
+                                break;
+                            case "replace":
+                                w=mod.str;
+                                break;
+                            case "insert":
+                                continue;
+                                break;
+                        }
+                        break;
+                    }
+                }
+
+                for(var mod of mods){
+                    if(mod.id==token.id){
+                        switch(mod.type){
+                            case "insert":
+                                insert+=mod.str;
+                                break;
+                        }
+                    }
+                }
+                res+=w+insert;
+            }
+        }
+        console.log(res);
+        console.log(res1);
+    }
     function initArr(){
         var d=[];
         for(var sen of data.result){
@@ -196,6 +304,135 @@ function test(data,callback){
     console.log("localMaximums");
     console.log(localMaximums);
     var maxDepth=maxInArray(depth);
+    var mods=[];
+    var count=0;
+    function invertAdjective(token){
+        var tmpMods=[];
+        console.log("invertAdjective");
+        var next=getToken(data,token.id+1);
+        if(next&&next.pos=="形容詞接尾辞"){
+            //tmpMods.unshift(new ModifyToken.remove(token.id+1));
+        }
+        tmpMods.unshift(new ModifyToken.replace(token.id,token.form+"くな"));
+
+        count++;
+        Antonym.SearchAntonymDic([token.lemma,token.form],function(s){
+            console.log(s);
+            if(s!=undefined){
+                mods.unshift(new ModifyToken.replace(token.id,s.substring(0,s.length-1)));
+            }else{
+                for(var mod of tmpMods){
+                    mods.unshift(mod);
+                }
+            }
+            count--;
+            build();
+            //console.log(`***${s}***`);
+        });
+    }
+    function invertVerb(token){
+        var tmpMods=[];
+        console.log("invertVerb");
+        if(token.lemma=="ある"||token.lemma=="有る"){
+            tmpMods.unshift(new ModifyToken.replace(token.id,"なか"));
+            
+        }else{
+            tmpMods.unshift(new ModifyToken.replace(token.id,katsuyou(token.form,token.lemma,token.features)));
+        }
+
+        for(var dep of token.dependency_labels){
+            if(dep.label=="nmod"){
+                var t1=getToken(data,dep.token_id);
+                console.log(t1);
+                if(t1.pos=="名詞"&&t1.features.includes("形容")){
+                    count++;
+                    Antonym.SearchAntonymJp(
+                        [t1.lemma,t1.form,t1.kana]
+                        ,"a",function(s){
+                            count--;
+
+                            if(s!=undefined){
+                                mods.unshift(new ModifyToken.replace(t1.id,s));
+                            }else{
+                                for(var mod of tmpMods){
+                                    mods.unshift(mod);
+                                }
+                            }
+                            build();
+                        });
+                    found=true;
+                }
+            }
+        }
+    }
+    function invertNoun(token){
+        var found=false;
+        var tmpMod=undefined;
+
+        for(var dep of token.dependency_labels){
+            var t1=getToken(data,dep.token_id);
+
+            if(dep.label=="amod"&&t1.id<token.id){
+                //console.log(getToken(data,dep.token_id));
+                inverted=katsuyou(t1.form,t1.lemma,t1.features);
+                //console.log(`***${inverted}くな***`);
+                if(!inverted){
+                    inverted=t1.form;
+                }
+                found=true;
+                mods.unshift(new ModifyToken.replace(t1.id,inverted+"くな"));
+                break;
+            }
+            if(dep.label=="cop"&&t1.pos=="判定詞"){
+                tmpMod=new ModifyToken.replace(t1.id,denyCop(t1.features));
+
+                //mods.unshift(new ModifyToken.replace(t1.id,denyCop(t1.features)));
+                break;
+            }
+            if(dep.label=="aux"){
+                if(t1.form=="する"){
+                    tmpMod=new ModifyToken.replace(t1.id,"しない");
+                }
+            }
+        }
+        if(found)return;
+        //if(!found){
+        count++;
+        Antonym.SearchAntonymDic([token.lemma,token.form],function(s){
+            console.log(s);
+            if(s!=undefined){
+                mods.unshift(new ModifyToken.replace(token.id,s));
+            }else{
+                mods.unshift(tmpMod);
+            }
+            count--;
+            build();
+            //console.log(`***${s}***`);
+        });
+        //}
+    }
+    function invertNeg(token){
+        mods.push(new ModifyToken.replace(token.id,token.lemma));
+        var next=getToken(data,token.id+1);
+        if(next&&next.pos=="動詞活用語尾"){
+            mods.unshift(new ModifyToken.remove(token.id+1));
+        }
+        for(var dep of token.dependency_labels){
+            var t1=getToken(data,dep.token_id);
+            //console.log(dep.label);
+            if(dep.label=="neg"){
+                console.log("remove:"+t1.form);
+                mods.push(new ModifyToken.remove(t1.id));
+                continue;
+            }
+            if(dep.label=="aux"){
+                if(t1.pos=="形容詞接尾辞"&&t1.id==token.id+1){
+                    mods.push(new ModifyToken.remove(t1.id));
+                    //console.log("remove:"+t1.form);
+                }
+            }
+        }
+    }
     for(var sen of data.result){
 
         var chunkStr="";
@@ -212,42 +449,152 @@ function test(data,callback){
                 console.log(sen.tokens[i].form);
                 if(tdep[i]==maxtdepth){
                     console.log("*");
+
                     var token=sen.tokens[i];
-                    var inverted=katsuyou(token.form,token.lemma,token.features);
                     var isNeg=false;
-                    for(var dep of token.dependency_labels){
-                        if(dep.label=="neg"){
+                    for(var deplab of token.dependency_labels){
+                        if(deplab.label=="neg"){
                             isNeg=true;
-                            console.log("remove:"+getToken(data,dep.token_id));
                             break;
                         }
                     }
                     if(isNeg){
+                        invertNeg(token);
+                        continue;
+                    }
+                    switch(token.pos){
+                        case "名詞":
+                        case "補助名詞":
+                            invertNoun(token);
+                            break;
+                        case "形容詞語幹":
+                            invertAdjective(token);
+                            break;
+                        case "動詞語幹":
+                            invertVerb(token);
+                            break;
+                    }
+                    continue;
+                    var inverted=katsuyou(token.form,token.lemma,token.features);
+                    if(isNeg){
+                        for(var dep of token.dependency_labels){
+                            var t1=getToken(data,dep.token_id);
+                            //console.log(dep.label);
+                            if(dep.label=="neg"){
+                                console.log("remove:"+t1.form);
+                                mods.push(new ModifyToken.remove(t1.id));
+                                continue;
+                            }
+                            if(dep.label=="aux"){
+                                if(t1.pos=="形容詞接尾辞"&&t1.id==token.id+1){
+                                    mods.push(new ModifyToken.remove(t1.id));
+                                    //console.log("remove:"+t1.form);
+                                }
+                            }
+                        }
                         continue;
                     }
                     //console.log(`***${inverted}***`);
                     if(token.pos=="名詞"){
                         //console.log("*"); 
-                        if(token.features.includes("動作"))  Antonym.SearchAntonymJp([token.lemma,token.form],undefined,function(s){
-                            console.log(`***${s}***`);
-                        });
+                        var found=false;
+
+                        for(var dep of token.dependency_labels){
+                            if(dep.label=="amod"){
+                                var t1=getToken(data,dep.token_id);
+                                /*console.log(getToken(data,dep.token_id));*/
+                                inverted=katsuyou(t1.form,t1.lemma,t1.features);
+                                //console.log(`***${inverted}くな***`);
+                                if(!inverted){
+                                    inverted=t1.form;
+                                }
+                                found=true;
+                                mods.unshift(new ModifyToken.replace(t1.id,inverted+"くな"))
+                                break;
+                            }
+                        }
+                        if(!found){
+                            count++;
+                            Antonym.SearchAntonymDic([token.lemma,token.form],function(s){
+                                console.log(s);
+                                if(s!=undefined){
+                                    mods.unshift(new ModifyToken.replace(token.id,s));
+                                }
+                                count--;
+                                build();
+                                //console.log(`***${s}***`);
+                            });
+                        }
                         else{
-                            for(var dep of token.dependency_labels){
-                                if(dep.label=="amod"){
-                                    var t1=getToken(data,dep.token_id);
-                                    /*console.log(getToken(data,dep.token_id));*/
-                                    inverted=katsuyou(t1.form,t1.lemma,t1.features);
-                                    console.log(`***${inverted}くな***`);
-                                    break;
+
+                        }
+
+                    }else{
+                        for(var dep of token.dependency_labels){
+                            if(dep.label=="nmod"){
+                                var t1=getToken(data,dep.token_id);
+                                console.log(t1);
+                                if(t1.pos=="名詞"&&t1.features.includes("形容")){
+                                    count++;
+                                    Antonym.SearchAntonymJp(
+                                        [t1.lemma,t1.form,t1.kana]
+                                        ,"a",function(s){
+                                            count--;
+
+                                            if(s!=undefined)
+                                                mods.unshift(new ModifyToken.replace(token.id,s));
+
+                                            build();
+                                        });
+                                    found=true;
                                 }
                             }
                         }
 
-                    }else{
+                        /*
+                        count++;
+                        Antonym.SearchAntonymDic(
+                            [token.lemma,token.form,token.kana]
+                            ,function(s){
+                                if(s!=undefined){
+                                    if(s=="ない"){
+                                        for(var dep of token.dependency_labels){
+                                            if(dep.label=="aux"){
+                                                var t1=getToken(data,token.id);
+
+                                            }
+                                        }
+                                    }
+                                    var t1=getToken(data,dep.token_id);;
+                                    if(t1&&t1.pos.includes("活用語尾")){
+                                        mods.unshift(new ModifyToken.remove(t1.id));
+                                        var t1=getToken(data,dep.token_id);
+                                    }
+                                    mods.unshift(new ModifyToken.replace(token.id,s));
+                                }
+
+                                count--;
+                                build();
+                            });*/
+
+                        /*
                         if(token.pos=="形容詞語幹"){
                             inverted+="くな";
+                        }*/
+                        if(token.lemma=="ある"||token.lemma=="有る"){
+                            mods.push(new ModifyToken.remove(token.id));
+                            mods.push(new ModifyToken.insert(token.id,"なか"));
+                        }else{
+                            if(!inverted){
+                                inverted=token.form+"く";
+                                //console.log(getToken(data,token.id+1));
+                            }
+
+                            mods.push(new ModifyToken.replace(token.id,inverted));
+                            mods.push(new ModifyToken.insert(token.id,"な"));
+
                         }
-                        console.log(`***${inverted}***`);
+                        //console.log(`***${inverted}***`);
                     }
                     /*
                     Antonym.SearchAntonymJp(,"v",function(s){
@@ -283,8 +630,43 @@ function test(data,callback){
             }
         }*/
     }
-}
+    build();
 
+}
+function denyCop(features){
+    if(features.includes("終止")){
+        return "でない";
+    }
+    if(features.includes("仮定")){
+        return "でなけれ";
+    }
+    if(features.includes("連体")){
+        return "でない";
+    }
+    if(features.includes("未然")){
+        return "でなかろ";
+    }
+    if(features.includes("連用")){
+        return "でなく";
+    }
+}
+var ModifyToken={
+    replace:function(id,str){
+        this.id=id;
+        this.str=str;
+        this.type="replace";
+    },
+    remove:function(id){
+        this.id=id;
+        this.type="remove";
+    },
+    insert:function(id,str){
+        this.id=id;
+        this.str=str;
+        this.type="insert";
+    },
+
+};
 function getChunk(parsed,chunkId){
     for(var chunk of parsed.result){
         if(chunk.chunk_info.id==chunkId){
@@ -369,7 +751,7 @@ function tokenDepth(tokens){
 
 
 var fs = require('fs');
-fs.readFile('parsed/sharknado_deny', 'utf8', function(err, data) {
+fs.readFile('parsed/homework', 'utf8', function(err, data) {
     if (err) throw err;
     console.log(data);
     test(JSON.parse(data),new Function(""));
