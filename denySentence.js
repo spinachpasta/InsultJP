@@ -353,6 +353,9 @@ function test(data,callback){
                 if(dep.label=="auxpass"&&t1.id>token.id){
                     auxpass=t1;
                 }
+                if(dep.label=="aux"&&t1.id>token.id&&t1.pos=="動詞語幹"){
+                    auxpass=t1;
+                }
                 /*
             if(dep.label=="aux"&&t1.id>token.id){
                 console.log(t1);
@@ -401,11 +404,13 @@ function test(data,callback){
     function invertNoun(token){
         var found=false;
         var tmpMod=undefined;
+        var tmpMods=[];
 
         for(var dep of token.dependency_labels){
             var t1=getToken(data,dep.token_id);
             if(dep.label=="nsubj"){
-                mods.unshift(new ModifyToken.replace(token.id,token.form+"ではない"));
+                tmpMods.unshift(new ModifyToken.replace(token.id,token.form+"ではない"));
+                break;
             }
             if(dep.label=="amod"&&t1.id<token.id){
                 //console.log(getToken(data,dep.token_id));
@@ -415,30 +420,46 @@ function test(data,callback){
                     inverted=t1.form;
                 }
                 found=true;
-                mods.unshift(new ModifyToken.replace(t1.id,inverted+"くな"));
+                tmpMods.unshift(new ModifyToken.replace(t1.id,inverted+"くな"));
                 break;
             }
             if(dep.label=="cop"&&t1.pos=="判定詞"){
-                tmpMod=new ModifyToken.replace(t1.id,denyCop(t1.features));
+                tmpMods.unshift(new ModifyToken.replace(t1.id,denyCop(t1.features)));
 
                 //mods.unshift(new ModifyToken.replace(t1.id,denyCop(t1.features)));
                 break;
             }
-            if(dep.label=="aux"){
+            if(dep.label=="aux"&&dep.token_id>token.id){
                 if(t1.form=="する"){
-                    tmpMod=new ModifyToken.replace(t1.id,"しない");
+                    tmpMods.unshift(new ModifyToken.replace(t1.id,"しない"));
+                }
+                if(t1.form=="し"){
+                    var t2=getToken(data,dep.token_id+1);
+                    if(t2){
+                        tmpMods.unshift(new ModifyToken.replace(t1.id,"しなかっ"));
+                    }else{
+                        tmpMods.unshift(new ModifyToken.replace(t1.id,"しない"));
+                    }
                 }
             }
         }
-        if(found)return;
+        console.log(tmpMods);
+        if(found){
+            for(var mod of tmpMods){
+                mods.unshift(mod);
+            }
+            return;
+        }
         //if(!found){
         count++;
         Antonym.SearchAntonymDic([token.lemma,token.form],function(s){
             console.log(s);
             if(s!=undefined){
                 mods.unshift(new ModifyToken.replace(token.id,s));
-            }else if(tmpMod!=undefined){
-                mods.unshift(tmpMod);
+            }else if(tmpMods.length>0){
+                for(var mod of tmpMods){
+                    mods.unshift(mod);
+                }
             }
             count--;
             build();
@@ -787,7 +808,7 @@ function tokenDepth(tokens){
 
 
 var fs = require('fs');
-fs.readFile('parsed/umai', 'utf8', function(err, data) {
+fs.readFile('parsed/poo', 'utf8', function(err, data) {
     if (err) throw err;
     console.log(data);
     test(JSON.parse(data),new Function(""));
