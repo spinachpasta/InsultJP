@@ -93,6 +93,7 @@ function SearchAntonymJp(strs,type,callback,usesentence,objectWord){
         str=strs;
         arg.push(str);
     }
+    
     SearchAntonymDic(arg,function(res){dicfinished(res);});
     function dicfinished(res){
         if(res!=undefined){

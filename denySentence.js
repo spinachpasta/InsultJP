@@ -331,37 +331,70 @@ function test(data,callback){
         });
     }
     function invertVerb(token){
+        console.log(token);
         var tmpMods=[];
         console.log("invertVerb");
         if(token.lemma=="ある"||token.lemma=="有る"){
             tmpMods.unshift(new ModifyToken.replace(token.id,"なか"));
-            
+
         }else{
-            tmpMods.unshift(new ModifyToken.replace(token.id,katsuyou(token.form,token.lemma,token.features)));
+            var inverted=katsuyou(token.form,token.lemma,token.features)||token.form;
+            tmpMods.unshift(new ModifyToken.replace(token.id,inverted));
+            var next=getToken(data,token.id+1);
+            if(next&&(next.pos=="動詞活用語尾"||next.pos=="動詞接尾辞")){
+                tmpMods.unshift(new ModifyToken.replace(token.id+1,"ない"));
+            }
+        }
+        var maxtoken=undefined;
+        var auxpass=undefined;
+        if(token.dependency_labels){
+            for(var dep of token.dependency_labels){
+                var t1=getToken(data,dep.token_id);
+                if(dep.label=="auxpass"&&t1.id>token.id){
+                    auxpass=t1;
+                }
+                /*
+            if(dep.label=="aux"&&t1.id>token.id){
+                console.log(t1);
+                if(!maxtoken||maxtoken.id<t1.id){
+                    maxtoken=t1;
+                }
+            }*/
+                if(dep.label=="nmod"){
+                    console.log(t1);
+                    if(t1.pos=="名詞"&&t1.features.includes("形容")){
+                        count++;
+                        Antonym.SearchAntonymJp(
+                            [t1.lemma,t1.form,t1.kana]
+                            ,"a",function(s){
+                                count--;
+
+                                if(s!=undefined){
+                                    mods.unshift(new ModifyToken.replace(t1.id,s));
+                                }else{
+                                    for(var mod of tmpMods){
+                                        mods.unshift(mod);
+                                    }
+                                }
+                                build();
+                            });
+                        found=true;
+                    }
+                }
+            }
         }
 
-        for(var dep of token.dependency_labels){
-            if(dep.label=="nmod"){
-                var t1=getToken(data,dep.token_id);
-                console.log(t1);
-                if(t1.pos=="名詞"&&t1.features.includes("形容")){
-                    count++;
-                    Antonym.SearchAntonymJp(
-                        [t1.lemma,t1.form,t1.kana]
-                        ,"a",function(s){
-                            count--;
-
-                            if(s!=undefined){
-                                mods.unshift(new ModifyToken.replace(t1.id,s));
-                            }else{
-                                for(var mod of tmpMods){
-                                    mods.unshift(mod);
-                                }
-                            }
-                            build();
-                        });
-                    found=true;
-                }
+        if(maxtoken){
+            tmpMods.unshift(new ModifyToken.replace(maxtoken.id,"ない"));
+        }
+        if(auxpass){
+            console.log("auxpass");
+            invertVerb(auxpass);
+            return;
+        }
+        if(!found){
+            for(var mod of tmpMods){
+                mods.unshift(mod);
             }
         }
     }
@@ -371,7 +404,9 @@ function test(data,callback){
 
         for(var dep of token.dependency_labels){
             var t1=getToken(data,dep.token_id);
-
+            if(dep.label=="nsubj"){
+                mods.unshift(new ModifyToken.replace(token.id,token.form+"ではない"));
+            }
             if(dep.label=="amod"&&t1.id<token.id){
                 //console.log(getToken(data,dep.token_id));
                 inverted=katsuyou(t1.form,t1.lemma,t1.features);
@@ -402,7 +437,7 @@ function test(data,callback){
             console.log(s);
             if(s!=undefined){
                 mods.unshift(new ModifyToken.replace(token.id,s));
-            }else{
+            }else if(tmpMod!=undefined){
                 mods.unshift(tmpMod);
             }
             count--;
@@ -446,6 +481,7 @@ function test(data,callback){
             var tdep=tokenDepth(sen.tokens);
             var maxtdepth=maxInArray(tdep);
             for(var i in sen.tokens){
+                console.log("depth:"+tdep[i]);
                 console.log(sen.tokens[i].form);
                 if(tdep[i]==maxtdepth){
                     console.log("*");
@@ -751,7 +787,7 @@ function tokenDepth(tokens){
 
 
 var fs = require('fs');
-fs.readFile('parsed/homework', 'utf8', function(err, data) {
+fs.readFile('parsed/umai', 'utf8', function(err, data) {
     if (err) throw err;
     console.log(data);
     test(JSON.parse(data),new Function(""));
